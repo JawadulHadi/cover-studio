@@ -1,16 +1,34 @@
 import React, { useState } from "react";
 import { BannerConfig, AISuggestions } from "../types";
 import { PERSONAS, PERSONA_MAP, DEFAULT_PERSONA_ID } from "../lib/personas";
-import { Sparkles, ArrowRight, Loader2, RefreshCw, Check, Code, Layers, FileText, Users } from "lucide-react";
+import { Sparkles, ArrowRight, Loader2, RefreshCw, Check, Code, Layers, FileText, Users, KeyRound, Eye, EyeOff } from "lucide-react";
 
 interface AIHelperProps {
   config: BannerConfig;
   onChangeConfig: (updates: Partial<BannerConfig>) => void;
 }
 
+// Session-only: cleared when the tab closes, never sent anywhere but
+// directly to our own generation endpoint for the request that needs it.
+const API_KEY_SESSION_STORAGE_KEY = "gemini_api_key";
+
 export default function AIHelper({ config, onChangeConfig }: AIHelperProps) {
   const [personaId, setPersonaId] = useState(DEFAULT_PERSONA_ID);
   const persona = PERSONA_MAP[personaId];
+
+  const [apiKey, setApiKey] = useState(
+    () => sessionStorage.getItem(API_KEY_SESSION_STORAGE_KEY) || ""
+  );
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  const handleApiKeyChange = (value: string) => {
+    setApiKey(value);
+    if (value) {
+      sessionStorage.setItem(API_KEY_SESSION_STORAGE_KEY, value);
+    } else {
+      sessionStorage.removeItem(API_KEY_SESSION_STORAGE_KEY);
+    }
+  };
 
   const [bioText, setBioText] = useState(persona.bioExample);
   const [titleInput, setTitleInput] = useState(config.title);
@@ -56,6 +74,7 @@ export default function AIHelper({ config, onChangeConfig }: AIHelperProps) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(apiKey.trim() ? { "X-Gemini-Api-Key": apiKey.trim() } : {}),
         },
         body: JSON.stringify({
           bioText,
@@ -134,6 +153,36 @@ export default function AIHelper({ config, onChangeConfig }: AIHelperProps) {
               <option key={p.id} value={p.id}>{p.label}</option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#888] mb-1.5 flex items-center gap-1.5">
+            <KeyRound className="w-3.5 h-3.5 text-[#555]" />
+            Your Gemini API Key (optional)
+          </label>
+          <div className="relative">
+            <input
+              type={showApiKey ? "text" : "password"}
+              value={apiKey}
+              onChange={(e) => handleApiKeyChange(e.target.value)}
+              placeholder="Paste your own key to generate without limits"
+              autoComplete="off"
+              className="w-full bg-[#050505] border border-[#1a1a1a] focus:border-blue-500 rounded-lg pl-3 pr-9 py-2 text-xs text-[#e5e5e5] placeholder-[#444] focus:ring-1 focus:ring-blue-500 transition-all outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowApiKey((v) => !v)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#555] hover:text-[#c5c5c5] cursor-pointer"
+              aria-label={showApiKey ? "Hide API key" : "Show API key"}
+            >
+              {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+          <p className="text-[10px] text-[#555] mt-1">
+            {apiKey.trim()
+              ? "Using your key — kept only in this browser tab's session, never saved to our servers."
+              : "Without a key, generation uses a shared demo quota and may be rate-limited. Get a free key at aistudio.google.com/apikey."}
+          </p>
         </div>
 
         <div>

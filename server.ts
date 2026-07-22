@@ -12,15 +12,18 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// Initialize Gemini API client on the server side
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    }
-  }
-});
+// Shared server-side Gemini client, used only as a fallback when the
+// caller doesn't supply their own key (see x-gemini-api-key below).
+const sharedAi = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    })
+  : null;
 
 // Server-side AI endpoint to generate LinkedIn taglines, bio expansions, and skill groupings
 app.post("/api/gemini/generate", async (req, res) => {
@@ -29,6 +32,27 @@ app.post("/api/gemini/generate", async (req, res) => {
 
     if (!bioText && !title && !currentTagline) {
       res.status(400).json({ error: "Missing required inputs for generation" });
+      return;
+    }
+
+    // Callers may bring their own Gemini API key so generation cost is
+    // theirs, not ours — this is what keeps a shared deployment at zero
+    // cost regardless of user count. The key is used for this request
+    // only: never logged, never persisted, never echoed back.
+    const clientApiKeyHeader = req.headers["x-gemini-api-key"];
+    const clientApiKey = typeof clientApiKeyHeader === "string" ? clientApiKeyHeader.trim() : "";
+
+    const genAiClient = clientApiKey
+      ? new GoogleGenAI({
+          apiKey: clientApiKey,
+          httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+        })
+      : sharedAi;
+
+    if (!genAiClient) {
+      res.status(400).json({
+        error: "No Gemini API key available. Add your own key in the AI Helper panel to generate copy."
+      });
       return;
     }
 
@@ -53,7 +77,7 @@ Please provide:
 2. A list of 6-8 core skills, tools, or specialties (${persona.skillsHint}) that represent the user's focus.
 3. Two variations of secondary contact/social taglines summarizing their specialty.`;
 
-    const response = await ai.models.generateContent({
+    const response = await genAiClient.models.generateContent({
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -87,7 +111,9 @@ Please provide:
     const data = JSON.parse(responseText.trim());
     res.json(data);
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
+    // Log only the message — never the full error object, which can
+    // embed request details (including a client-supplied API key).
+    console.error("Gemini API Error:", error?.message || error);
     res.status(500).json({ error: error.message || "Failed to generate copywriting suggestions from Gemini" });
   }
 });
