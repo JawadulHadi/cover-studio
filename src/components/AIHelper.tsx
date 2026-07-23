@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { BannerConfig, AISuggestions } from "../types";
-import { PERSONAS, PERSONA_MAP, DEFAULT_PERSONA_ID } from "../lib/personas";
-import { Sparkles, ArrowRight, Loader2, RefreshCw, Check, Code, Layers, FileText, Users, KeyRound, Eye, EyeOff } from "lucide-react";
+import { ROLE_SUGGESTIONS, ARCHETYPES, DEFAULT_ROLE, DEFAULT_ARCHETYPE, EXAMPLE_BIO } from "../lib/personas";
+import { Sparkles, ArrowRight, Loader2, RefreshCw, Check, Code, Layers, FileText, Briefcase, KeyRound, Eye, EyeOff } from "lucide-react";
 
 interface AIHelperProps {
   config: BannerConfig;
@@ -13,8 +13,7 @@ interface AIHelperProps {
 const API_KEY_SESSION_STORAGE_KEY = "gemini_api_key";
 
 export default function AIHelper({ config, onChangeConfig }: AIHelperProps) {
-  const [personaId, setPersonaId] = useState(DEFAULT_PERSONA_ID);
-  const persona = PERSONA_MAP[personaId];
+  const [role, setRole] = useState(DEFAULT_ROLE);
 
   const [apiKey, setApiKey] = useState(
     () => sessionStorage.getItem(API_KEY_SESSION_STORAGE_KEY) || ""
@@ -30,20 +29,10 @@ export default function AIHelper({ config, onChangeConfig }: AIHelperProps) {
     }
   };
 
-  const [bioText, setBioText] = useState(persona.bioExample);
+  const [bioText, setBioText] = useState(EXAMPLE_BIO);
   const [titleInput, setTitleInput] = useState(config.title);
   const [taglineInput, setTaglineInput] = useState(config.tagline);
-  const [styleMode, setStyleMode] = useState(persona.archetypes[0]);
-
-  const handlePersonaChange = (nextId: string) => {
-    const nextPersona = PERSONA_MAP[nextId];
-    // Only swap the example bio if the user hasn't typed over it yet.
-    if (bioText === persona.bioExample) {
-      setBioText(nextPersona.bioExample);
-    }
-    setStyleMode(nextPersona.archetypes[0]);
-    setPersonaId(nextId);
-  };
+  const [styleMode, setStyleMode] = useState(DEFAULT_ARCHETYPE);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +70,7 @@ export default function AIHelper({ config, onChangeConfig }: AIHelperProps) {
           title: titleInput,
           currentTagline: taglineInput,
           styleMode,
-          persona: personaId
+          role
         }),
       });
 
@@ -128,8 +117,8 @@ export default function AIHelper({ config, onChangeConfig }: AIHelperProps) {
             <Sparkles className="w-5 h-5 text-blue-400 animate-pulse" />
           </div>
           <div>
-            <h3 className="font-bold text-white text-base">Gemini Personal Brand Writer</h3>
-            <p className="text-xs text-slate-400">Optimize banner copy for {persona.focus}</p>
+            <h3 className="font-bold text-white text-base">AI Personal Brand Writer</h3>
+            <p className="text-xs text-slate-400">Optimize banner copy for any profession</p>
           </div>
         </div>
         <div className="text-[9px] font-mono font-bold uppercase tracking-widest text-[#555] px-2 py-1 bg-[#050505]/50 border border-[#111] rounded">
@@ -141,18 +130,32 @@ export default function AIHelper({ config, onChangeConfig }: AIHelperProps) {
       <div className="space-y-4">
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-[#888] mb-1.5 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-[#555]" />
-            Profession
+            <Briefcase className="w-3.5 h-3.5 text-[#555]" />
+            Your Role / Field
           </label>
-          <select
-            value={personaId}
-            onChange={(e) => handlePersonaChange(e.target.value)}
-            className="w-full bg-[#050505] border border-[#1a1a1a] focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-[#e5e5e5] focus:ring-1 focus:ring-blue-500 transition-all outline-none cursor-pointer"
-          >
-            {PERSONAS.map((p) => (
-              <option key={p.id} value={p.id}>{p.label}</option>
+          <input
+            type="text"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            placeholder="e.g. Product Designer, Sales Executive, Founder…"
+            className="w-full bg-[#050505] border border-[#1a1a1a] focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-[#e5e5e5] placeholder-[#444] focus:ring-1 focus:ring-blue-500 transition-all outline-none"
+          />
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {ROLE_SUGGESTIONS.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => setRole(suggestion)}
+                className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold transition-all cursor-pointer ${
+                  role === suggestion
+                    ? "bg-blue-500/15 border-blue-500/40 text-blue-300"
+                    : "bg-[#050505]/60 border-[#1a1a1a] text-[#888] hover:border-[#333] hover:text-[#c5c5c5]"
+                }`}
+              >
+                {suggestion}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
         <div>
@@ -209,7 +212,7 @@ export default function AIHelper({ config, onChangeConfig }: AIHelperProps) {
               type="text"
               value={titleInput}
               onChange={(e) => setTitleInput(e.target.value)}
-              placeholder={persona.titlePlaceholder}
+              placeholder="e.g. Senior Product Designer"
               className="w-full bg-[#050505] border border-[#1a1a1a] focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-[#e5e5e5] focus:ring-1 focus:ring-blue-500 transition-all outline-none"
             />
           </div>
@@ -224,7 +227,7 @@ export default function AIHelper({ config, onChangeConfig }: AIHelperProps) {
               onChange={(e) => setStyleMode(e.target.value)}
               className="w-full bg-[#050505] border border-[#1a1a1a] focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-[#e5e5e5] focus:ring-1 focus:ring-blue-500 transition-all outline-none cursor-pointer"
             >
-              {persona.archetypes.map((a) => (
+              {ARCHETYPES.map((a) => (
                 <option key={a} value={a}>{a}</option>
               ))}
             </select>

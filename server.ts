@@ -3,7 +3,6 @@ import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
-import { PERSONA_MAP, DEFAULT_PERSONA_ID } from "./src/lib/personas";
 
 dotenv.config();
 
@@ -28,12 +27,17 @@ const sharedAi = process.env.GEMINI_API_KEY
 // Server-side AI endpoint to generate LinkedIn taglines, bio expansions, and skill groupings
 app.post("/api/gemini/generate", async (req, res) => {
   try {
-    const { bioText, title, currentTagline, styleMode, persona: personaId } = req.body;
+    const { bioText, title, currentTagline, styleMode, role } = req.body;
 
     if (!bioText && !title && !currentTagline) {
       res.status(400).json({ error: "Missing required inputs for generation" });
       return;
     }
+
+    // Role is free text — cap length to avoid prompt bloat/abuse, fall back
+    // to a neutral descriptor if empty.
+    const safeRole = (typeof role === "string" ? role : "").trim().slice(0, 80) || "professional";
+    const safeTone = (typeof styleMode === "string" ? styleMode : "").trim().slice(0, 80) || "Impact & Results-focused";
 
     // Callers may bring their own Gemini API key so generation cost is
     // theirs, not ours — this is what keeps a shared deployment at zero
@@ -56,25 +60,22 @@ app.post("/api/gemini/generate", async (req, res) => {
       return;
     }
 
-    // Persona is looked up server-side from a fixed map — never interpolate
-    // client-supplied free text into the system instruction itself.
-    const persona = PERSONA_MAP[personaId] || PERSONA_MAP[DEFAULT_PERSONA_ID];
-
-    const systemInstruction = `You are an expert LinkedIn profile optimizer and personal branding designer for ${persona.focus}.
+    const systemInstruction = `You are an expert LinkedIn profile optimizer and personal branding designer.
+The user works as a "${safeRole}". Tailor all copy to that field's language, tools, and outcomes.
 Your goal is to analyze the user's professional background and generate high-impact, minimalist copy suitable for a LinkedIn cover banner.
 LinkedIn banners are wide and short (1584x396). Text must be extremely concise (typically a single powerful sentence/tagline and 4-6 primary skills/badges).
-${persona.guidance}
-Avoid generic marketing buzzwords not specific to the field.`;
+Focus on concrete, field-relevant impact, scale, and shipped work. Avoid generic buzzwords not specific to the "${safeRole}" field.`;
 
     const prompt = `Analyze the following professional context and generate copy suggestions:
+- Role / Field: ${safeRole}
 - Name/Target Title: ${title || "N/A"}
 - Current Tagline: ${currentTagline || "N/A"}
 - Raw Bio/Details: ${bioText || "N/A"}
-- Requested Tone: ${styleMode || persona.archetypes[0]}
+- Requested Tone: ${safeTone}
 
 Please provide:
-1. Three variations of an elegant, crisp, single-sentence tagline (under 100 characters each) that highlights concrete, field-relevant expertise.
-2. A list of 6-8 core skills, tools, or specialties (${persona.skillsHint}) that represent the user's focus.
+1. Three variations of an elegant, crisp, single-sentence tagline (under 100 characters each) that highlights concrete, field-relevant expertise for a ${safeRole}.
+2. A list of 6-8 core skills, tools, or specialties that represent a ${safeRole}'s focus.
 3. Two variations of secondary contact/social taglines summarizing their specialty.`;
 
     const response = await genAiClient.models.generateContent({

@@ -10,36 +10,39 @@ import {
   HelpCircle, RefreshCw, Briefcase, Award, Shield, CheckCircle2, Laptop 
 } from "lucide-react";
 
+// Neutral, fictional demo profile — no real personal data (org privacy rule).
+// Single source of truth for both the initial state and "Reset Demo".
+const DEFAULT_CONFIG: BannerConfig = {
+  name: "Jordan Ellis",
+  title: "Senior Software Engineer",
+  tagline: "I build backend systems that scale, AI features that ship, and integrations that connect.",
+  subTitle: "Specializing in Web Applications, Scalable Cloud Architectures & Generative AI",
+  email: "jordan.ellis@example.com",
+  location: "Singapore",
+  skills: ["NestJS", "TypeScript", "Node.js", "PostgreSQL", "Docker", "GCP", "Gemini 2.5", "BullMQ"],
+  templateId: "sophisticated-dark",
+  themeColor: "sophisticated-dark",
+  accentColor: "#3b82f6",
+  textColor: "#ffffff",
+  bgPattern: "grid",
+  customLogoUrl: "",
+  customAvatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80", // Generic stock headshot
+  showProfileSafeZone: true,
+  safeZoneDevice: "desktop",
+  gridOverlay: true,
+  fontWeight: "bold",
+  fontFamily: "Space Grotesk",
+  customBgUrl: "",
+  aiStyleMode: "Architectural & Scale-focused",
+  highlights: [
+    { label: "Experience", value: "7+ Years" },
+    { label: "Focus", value: "100+ Projects" },
+    { label: "Cloud Systems", value: "GCP Certified" }
+  ]
+};
+
 export default function App() {
-  // Pre-load Jawad Ul Hadi's professional profile as the pristine default!
-  const [config, setConfig] = useState<BannerConfig>({
-    name: "Jawad Ul Hadi",
-    title: "Senior Back-End Software Engineer",
-    tagline: "I build backend systems that scale, AI features that ship, and integrations that connect.",
-    subTitle: "Specializing in Web Applications, Scalable Cloud Architectures & Generative AI",
-    email: "jawadulhadicc@gmail.com",
-    location: "Islamabad, Pakistan",
-    skills: ["NestJS", "TypeScript", "Node.js", "PostgreSQL", "Docker", "GCP", "Gemini 2.5", "BullMQ"],
-    templateId: "sophisticated-dark",
-    themeColor: "sophisticated-dark",
-    accentColor: "#3b82f6",
-    textColor: "#ffffff",
-    bgPattern: "grid",
-    customLogoUrl: "",
-    customAvatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80", // Premium male tech headshot
-    showProfileSafeZone: true,
-    safeZoneDevice: "desktop",
-    gridOverlay: true,
-    fontWeight: "bold",
-    fontFamily: "Space Grotesk",
-    customBgUrl: "",
-    aiStyleMode: "Architectural & Scale-focused",
-    highlights: [
-      { label: "Experience", value: "7+ Years" },
-      { label: "SaaS Focus", value: "100+ Orgs" },
-      { label: "Cloud Systems", value: "GCP Certified" }
-    ]
-  });
+  const [config, setConfig] = useState<BannerConfig>(DEFAULT_CONFIG);
 
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -63,35 +66,8 @@ export default function App() {
   };
 
   const handleResetToDefault = () => {
-    setConfig({
-      name: "Jawad Ul Hadi",
-      title: "Senior Back-End Software Engineer",
-      tagline: "I build backend systems that scale, AI features that ship, and integrations that connect.",
-      subTitle: "Specializing in Web Applications, Scalable Cloud Architectures & Generative AI",
-      email: "jawadulhadicc@gmail.com",
-      location: "Islamabad, Pakistan",
-      skills: ["NestJS", "TypeScript", "Node.js", "PostgreSQL", "Docker", "GCP", "Gemini 2.5", "BullMQ"],
-      templateId: "sophisticated-dark",
-      themeColor: "sophisticated-dark",
-      accentColor: "#3b82f6",
-      textColor: "#ffffff",
-      bgPattern: "grid",
-      customLogoUrl: "",
-      customAvatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80",
-      showProfileSafeZone: true,
-      safeZoneDevice: "desktop",
-      gridOverlay: true,
-      fontWeight: "bold",
-      fontFamily: "Space Grotesk",
-      customBgUrl: "",
-      aiStyleMode: "Architectural & Scale-focused",
-      highlights: [
-        { label: "Experience", value: "7+ Years" },
-        { label: "SaaS Focus", value: "100+ Orgs" },
-        { label: "Cloud Systems", value: "GCP Certified" }
-      ]
-    });
-    showToast("Reset to default Senior Engineer profile!");
+    setConfig(DEFAULT_CONFIG);
+    showToast("Reset to the default demo profile!");
   };
 
   return (
@@ -113,12 +89,12 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
-              LinkedIn Cover Studio
+              Qeloma Cover Studio
               <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 uppercase tracking-widest">
-                Developer Edition
+                Beta
               </span>
             </h1>
-            <p className="text-xs text-slate-400">Design high-end, minimalist banner covers optimized for engineer bios & safe zones</p>
+            <p className="text-xs text-slate-400">Design high-end, minimalist LinkedIn cover banners for any profession — AI-assisted copy & safe-zone guides</p>
           </div>
         </div>
 
@@ -134,7 +110,7 @@ export default function App() {
           
           <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 rounded bg-[#050505]/60 border border-[#111] text-[10px] font-mono font-semibold text-[#888]">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Scale Ingress: Port 3000 Active</span>
+            <span>Live Canvas Ready</span>
           </div>
 
           <AuthPanel />
@@ -281,11 +257,11 @@ export default function App() {
       {/* Footer bar */}
       <footer className="mt-12 border-t border-[#111] bg-[#050505]/80 py-6 px-6 text-center text-xs text-[#555]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 LinkedIn Cover Studio. Designed with absolute precision for high-scale Software Architects.</p>
+          <p>© 2026 Qeloma Cover Studio. Craft a standout LinkedIn banner in minutes.</p>
           <div className="flex items-center gap-4 text-[#444]">
-            <span>Production Stack: React 19 • Express • Gemini 3.5</span>
+            <span>Built by Qeloma • Powered by Gemini AI</span>
             <span>•</span>
-            <span className="hover:text-slate-400 cursor-pointer">Security Aligned</span>
+            <span className="hover:text-slate-400 cursor-pointer">Privacy-first</span>
           </div>
         </div>
       </footer>

@@ -122,7 +122,7 @@ export default function MockProfile({ config }: MockProfileProps) {
           {/* Verification Badge */}
           <div className="absolute right-6 top-4 flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full">
             <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">AI Verified Architect</span>
+            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">AI Optimized</span>
           </div>
 
           {/* Personal Metadata */}
@@ -173,7 +173,7 @@ export default function MockProfile({ config }: MockProfileProps) {
             
             <div className="ml-auto flex items-center gap-2 text-[11px] text-[#666] bg-[#050505]/40 px-3 py-1.5 rounded border border-[#1a1a1a]">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Actively looking for Senior Backend / AI Engineer Roles</span>
+              <span>Actively looking for {config.title} roles</span>
             </div>
           </div>
 
@@ -181,9 +181,9 @@ export default function MockProfile({ config }: MockProfileProps) {
           <div className="mt-6 pt-5 border-t border-[#1a1a1a]">
             <h3 className="text-xs font-bold text-[#888] uppercase tracking-widest mb-2.5">About Focus Summary</h3>
             <p className="text-xs text-[#c5c5c5] leading-relaxed max-w-3xl">
-              I build backend systems that scale, AI features that ship, and integrations that connect. 
-              7+ years as a Senior Backend Engineer / Backend Lead. Specializing in NestJS, Node.js, Python, PostgreSQL, AWS, and GCP. 
-              Pioneering production AI solutions with Gemini 2.5 Flash integrated safely inside heavy recruiter analytics pipelines.
+              {config.tagline}
+              {config.subTitle ? ` ${config.subTitle}.` : ""}
+              {config.skills.length > 0 ? ` Core stack: ${config.skills.slice(0, 6).join(", ")}.` : ""}
             </p>
           </div>
         </div>
