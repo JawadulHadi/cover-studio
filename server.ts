@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI, Type } from "@google/genai";
+import { generateCopy } from "./api/_lib/generateCopy";
 
 dotenv.config();
 
@@ -11,105 +11,33 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// Shared server-side Gemini client, used only as a fallback when the
-// caller doesn't supply their own key (see x-gemini-api-key below).
-const sharedAi = process.env.GEMINI_API_KEY
-  ? new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    })
-  : null;
-
-// Server-side AI endpoint to generate LinkedIn taglines, bio expansions, and skill groupings
+// Server-side AI endpoint to generate LinkedIn taglines, skills, and subtitles.
+// Shares its logic with the Vercel serverless function (api/gemini/generate.ts).
 app.post("/api/gemini/generate", async (req, res) => {
   try {
-    const { bioText, title, currentTagline, styleMode, role } = req.body;
+    const { bioText, title, currentTagline } = req.body;
 
     if (!bioText && !title && !currentTagline) {
       res.status(400).json({ error: "Missing required inputs for generation" });
       return;
     }
 
-    // Role is free text — cap length to avoid prompt bloat/abuse, fall back
-    // to a neutral descriptor if empty.
-    const safeRole = (typeof role === "string" ? role : "").trim().slice(0, 80) || "professional";
-    const safeTone = (typeof styleMode === "string" ? styleMode : "").trim().slice(0, 80) || "Impact & Results-focused";
-
-    // Callers may bring their own Gemini API key so generation cost is
-    // theirs, not ours — this is what keeps a shared deployment at zero
-    // cost regardless of user count. The key is used for this request
-    // only: never logged, never persisted, never echoed back.
+    // Callers may bring their own Gemini API key so generation cost is theirs,
+    // not ours — this is what keeps a shared deployment at zero cost regardless
+    // of user count. The key is used for this request only: never logged,
+    // never persisted, never echoed back. Falls back to the server key.
     const clientApiKeyHeader = req.headers["x-gemini-api-key"];
     const clientApiKey = typeof clientApiKeyHeader === "string" ? clientApiKeyHeader.trim() : "";
+    const apiKey = clientApiKey || process.env.GEMINI_API_KEY || "";
 
-    const genAiClient = clientApiKey
-      ? new GoogleGenAI({
-          apiKey: clientApiKey,
-          httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-        })
-      : sharedAi;
-
-    if (!genAiClient) {
+    if (!apiKey) {
       res.status(400).json({
         error: "No Gemini API key available. Add your own key in the AI Helper panel to generate copy."
       });
       return;
     }
 
-    const systemInstruction = `You are an expert LinkedIn profile optimizer and personal branding designer.
-The user works as a "${safeRole}". Tailor all copy to that field's language, tools, and outcomes.
-Your goal is to analyze the user's professional background and generate high-impact, minimalist copy suitable for a LinkedIn cover banner.
-LinkedIn banners are wide and short (1584x396). Text must be extremely concise (typically a single powerful sentence/tagline and 4-6 primary skills/badges).
-Focus on concrete, field-relevant impact, scale, and shipped work. Avoid generic buzzwords not specific to the "${safeRole}" field.`;
-
-    const prompt = `Analyze the following professional context and generate copy suggestions:
-- Role / Field: ${safeRole}
-- Name/Target Title: ${title || "N/A"}
-- Current Tagline: ${currentTagline || "N/A"}
-- Raw Bio/Details: ${bioText || "N/A"}
-- Requested Tone: ${safeTone}
-
-Please provide:
-1. Three variations of an elegant, crisp, single-sentence tagline (under 100 characters each) that highlights concrete, field-relevant expertise for a ${safeRole}.
-2. A list of 6-8 core skills, tools, or specialties that represent a ${safeRole}'s focus.
-3. Two variations of secondary contact/social taglines summarizing their specialty.`;
-
-    const response = await genAiClient.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            taglines: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "Three distinct, professional, punchy taglines under 100 characters."
-            },
-            skills: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "A highly relevant list of 6-8 technology names or specialties."
-            },
-            subtitles: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "Two secondary tech list or specialization subtitles."
-            }
-          },
-          required: ["taglines", "skills", "subtitles"]
-        }
-      }
-    });
-
-    const responseText = response.text || "{}";
-    const data = JSON.parse(responseText.trim());
+    const data = await generateCopy(req.body, apiKey);
     res.json(data);
   } catch (error: any) {
     // Log only the message — never the full error object, which can
